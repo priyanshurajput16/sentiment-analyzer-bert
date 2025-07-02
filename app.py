@@ -7,21 +7,33 @@ from streamlit_lottie import st_lottie
 # Load model and tokenizer
 model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
 # Set device to CPU
-device = torch.device("cpu")
-model.to(device)
+
+from transformers import pipeline
+
+classifier = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
+
 
 # Function to classify text sentiment
 def classify_text(text):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True).to(device)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    probs = torch.nn.functional.softmax(outputs.logits, dim=1)
-    score, label_id = torch.max(probs, dim=1)
-    label = label_id.item() + 1  # Convert 0-4 to 1-5 stars
-    return label, score.item()
+    result = classifier(text)[0]
+    label = result["label"]  # '1 star' to '5 stars'
+    score = result["score"]
+
+    # Map to numerical label
+    if label == "1 star":
+        stars = 1
+    elif label == "2 stars":
+        stars = 2
+    elif label == "3 stars":
+        stars = 3
+    elif label == "4 stars":
+        stars = 4
+    else:
+        stars = 5
+
+    return stars, score
 
 # Load Lottie animation
 def load_lottie(filepath: str):
